@@ -1,0 +1,26 @@
+{
+  "name": "rvc-controller-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build",
+    "lint": "vue-cli-service lint"
+  },
+  "dependencies": {
+    "axios": "^1.3.4",
+    "core-js": "^3.29.0",
+    "element-plus": "^2.2.32",
+    "vue": "^3.2.47",
+    "vue-router": "^4.1.6"
+  },
+  "devDependencies": {
+    "@babel/eslint-parser": "^7.26.10",
+    "@vue/cli-plugin-babel": "~5.0.8",
+    "@vue/cli-plugin-eslint": "~5.0.8",
+    "@vue/cli-plugin-router": "~5.0.8",
+    "@vue/cli-service": "~5.0.8",
+    "eslint": "^8.57.1",
+    "eslint-plugin-vue": "^9.33.0"
+  }
+}
