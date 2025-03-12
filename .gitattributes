@@ -1,0 +1,58 @@
+# 自动检测文本文件并执行LF标准化
+* text=auto
+
+# 源代码
+*.py text
+*.js text
+*.vue text
+*.html text
+*.css text
+*.scss text
+*.json text
+*.md text
+*.txt text
+*.yml text
+*.yaml text
+*.xml text
+*.sh text eol=lf
+*.bat text eol=crlf
+
+# 文档
+*.pdf binary
+*.doc binary
+*.docx binary
+*.xls binary
+*.xlsx binary
+*.ppt binary
+*.pptx binary
+
+# 图像
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg text
+
+# 字体
+*.ttf binary
+*.eot binary
+*.woff binary
+*.woff2 binary
+
+# 音频
+*.mp3 binary
+*.wav binary
+*.ogg binary
+
+# 视频
+*.mp4 binary
+*.webm binary
+*.avi binary
+
+# 压缩文件
+*.zip binary
+*.rar binary
+*.7z binary
+*.gz binary
+*.tar binary 
