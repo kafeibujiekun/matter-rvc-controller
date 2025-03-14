@@ -9,20 +9,23 @@ module.exports = defineConfig({
       '/api': {
         target: 'http://localhost:5000',
         changeOrigin: true
-      },
-      '/ws': {
-        target: 'ws://localhost:5000',
-        ws: true,
-        changeOrigin: true,
-        pathRewrite: {
-          '^/ws': '/ws'  // 重写路径
-        }
       }
     },
     client: {
       overlay: {
         errors: true,
         warnings: false
+      },
+      webSocketURL: {
+        hostname: '0.0.0.0',
+        pathname: '/sockjs-node',
+        port: 8080
+      }
+    },
+    webSocketServer: {
+      type: 'sockjs',
+      options: {
+        prefix: '/sockjs-node'
       }
     }
   }

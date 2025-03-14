@@ -6,12 +6,13 @@ Flask后端主程序
 import os
 import logging
 import asyncio
+import signal
 from flask import Flask, render_template, send_from_directory
 from flask_cors import CORS
 import config
 from matter_client import MatterClient
-from websocket_server import WebSocketServer
 from api.routes import api
+from ws_service import ws_service
 
 # 配置日志
 logging.basicConfig(
@@ -45,8 +46,8 @@ app.register_blueprint(api, url_prefix='/api')
 # Matter客户端
 app.matter_client = None
 
-# WebSocket服务器
-app.ws_server = None
+# 将WebSocket服务添加到应用上下文中
+app.ws_service = ws_service
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
@@ -101,8 +102,8 @@ async def init_app():
     # 初始化Matter客户端
     await init_matter_client()
     
-    # 初始化WebSocket服务器
-    app.ws_server = WebSocketServer(app)
+    # 启动WebSocket服务
+    await app.ws_service.start()
     
     logger.info("应用初始化完成")
 
@@ -115,14 +116,28 @@ def run_app():
     # 初始化应用
     loop.run_until_complete(init_app())
     
+    # 处理信号
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        loop.add_signal_handler(sig, lambda: asyncio.create_task(shutdown(loop)))
+    
     # 启动Flask应用
     from hypercorn.asyncio import serve
     from hypercorn.config import Config
     
     config = Config()
-    config.bind = ["0.0.0.0:5000"]
+    config.bind = ["0.0.0.0:5000"]  # HTTP接口端口为5000
     
     loop.run_until_complete(serve(app, config))
+
+async def shutdown(loop):
+    """关闭服务器"""
+    logger.info("正在关闭服务...")
+    
+    # 关闭WebSocket服务器
+    await app.ws_service.stop()
+    
+    # 停止事件循环
+    loop.stop()
 
 if __name__ == '__main__':
     run_app() 

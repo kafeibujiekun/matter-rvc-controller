@@ -145,7 +145,7 @@ npm run build
    ```
 
 3. 确保前端配置正确：
-   - 前端WebSocket客户端应使用相对路径 `/ws`
+   - 前端WebSocket客户端应使用'ws://ip:5005
    - Vue开发服务器应正确配置WebSocket代理
 
 4. 如果使用不同的主机或端口，请相应更新配置

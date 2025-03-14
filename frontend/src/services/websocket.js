@@ -12,12 +12,19 @@ class WebSocketService {
     this.reconnectInterval = 3000; // 3秒
     this.statusListeners = [];
     
-    // 使用相对路径，让代理处理实际连接
-    // 避免硬编码IP地址
-    this.wsUrl = '/ws';
-    
-    // 备用服务器地址，如果主地址连接失败可以尝试
-    this.backupWsUrl = null;
+    // 优先使用环境变量中的WebSocket URL，如果没有则使用基于当前主机的URL
+    this.wsUrl = process.env.VUE_APP_WS_URL || this.getDefaultWsUrl();
+    console.log('初始化WebSocket服务，URL:', this.wsUrl);
+  }
+
+  /**
+   * 获取默认的WebSocket URL
+   * @returns {string} 默认的WebSocket URL
+   */
+  getDefaultWsUrl() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.hostname;
+    return `${protocol}//${host}:5005`;
   }
 
   /**
@@ -28,10 +35,9 @@ class WebSocketService {
       console.log('WebSocket已连接');
       return;
     }
-
-    // 构建完整的WebSocket URL
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const fullUrl = `${protocol}//${window.location.host}${this.wsUrl}`;
+    
+    // 使用完整的WebSocket URL
+    const fullUrl = this.wsUrl;
     
     console.log(`正在连接WebSocket: ${fullUrl}`);
     
@@ -62,6 +68,7 @@ class WebSocketService {
       this.socket.onerror = (error) => {
         console.error('WebSocket错误:', error);
         this.isConnected = false;
+        this.attemptReconnect();
       };
     } catch (error) {
       console.error('创建WebSocket连接失败:', error);

@@ -40,6 +40,50 @@ check_venv() {
     fi
 }
 
+# 检查并清理占用的端口
+check_and_clean_ports() {
+    local http_port=5000
+    local ws_port=5005
+    
+    print_info "检查端口占用情况..."
+    
+    # 检查HTTP端口
+    if lsof -i :$http_port -t &> /dev/null; then
+        print_warning "HTTP端口 $http_port 已被占用"
+        local pid=$(lsof -i :$http_port -t)
+        print_info "尝试终止占用HTTP端口的进程 (PID: $pid)..."
+        kill -15 $pid 2>/dev/null || kill -9 $pid 2>/dev/null
+        sleep 1
+        if lsof -i :$http_port -t &> /dev/null; then
+            print_error "无法释放HTTP端口 $http_port，请手动终止占用进程"
+            print_info "可以使用命令: sudo kill -9 $(lsof -i :$http_port -t)"
+            exit 1
+        else
+            print_success "HTTP端口 $http_port 已释放"
+        fi
+    else
+        print_success "HTTP端口 $http_port 可用"
+    fi
+    
+    # 检查WebSocket端口
+    if lsof -i :$ws_port -t &> /dev/null; then
+        print_warning "WebSocket端口 $ws_port 已被占用"
+        local pid=$(lsof -i :$ws_port -t)
+        print_info "尝试终止占用WebSocket端口的进程 (PID: $pid)..."
+        kill -15 $pid 2>/dev/null || kill -9 $pid 2>/dev/null
+        sleep 1
+        if lsof -i :$ws_port -t &> /dev/null; then
+            print_error "无法释放WebSocket端口 $ws_port，请手动终止占用进程"
+            print_info "可以使用命令: sudo kill -9 $(lsof -i :$ws_port -t)"
+            exit 1
+        else
+            print_success "WebSocket端口 $ws_port 已释放"
+        fi
+    else
+        print_success "WebSocket端口 $ws_port 可用"
+    fi
+}
+
 # 启动后端服务
 start_backend() {
     print_info "正在启动后端服务..."
@@ -50,17 +94,21 @@ start_backend() {
     # 进入后端目录
     cd "$BACKEND_DIR"
     
-    # 设置环境变量，确保WebSocket服务器绑定到所有接口
+    # 设置环境变量
     export FLASK_RUN_HOST="0.0.0.0"
     export FLASK_RUN_PORT="5000"
     export FLASK_DEBUG="1"
+    export WS_PORT="5005"
     
     # 启动后端服务
-    print_info "启动Flask应用，监听所有接口，端口5000"
-    python app.py
+    print_info "启动Flask应用，HTTP服务监听端口5000，WebSocket服务监听端口5005"
+    python app.py &
+    BACKEND_PID=$!
     
     # 返回项目根目录
     cd "$PROJECT_ROOT"
+    
+    print_success "后端服务已启动，PID: $BACKEND_PID"
 }
 
 # 主函数
@@ -70,8 +118,15 @@ main() {
     # 检查虚拟环境
     check_venv
     
+    # 检查并清理占用的端口
+    check_and_clean_ports
+    
     # 启动后端服务
     start_backend
+    
+    print_success "服务已启动"
+    print_info "HTTP服务: http://0.0.0.0:5000"
+    print_info "WebSocket服务: ws://0.0.0.0:5005"
 }
 
 # 执行主函数

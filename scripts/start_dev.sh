@@ -41,6 +41,44 @@ check_venv() {
     fi
 }
 
+# 更新.env文件
+update_env_file() {
+    local ip=$(get_local_ip)
+    local env_file="${BACKEND_DIR}/.env"
+    
+    print_info "更新后端环境配置..."
+    
+    # 创建或更新.env文件
+    cat > "$env_file" << EOF
+FLASK_RUN_HOST=0.0.0.0
+FLASK_RUN_PORT=5001
+FLASK_DEBUG=1
+MATTER_SERVER_URL=ws://${ip}:5580/ws
+EOF
+    
+    print_success "后端环境配置已更新"
+}
+
+# 更新前端配置
+update_frontend_config() {
+    local ip=$(get_local_ip)
+    local config_file="${FRONTEND_DIR}/vue.config.js"
+    
+    print_info "更新前端代理配置..."
+    
+    # 检查配置文件是否存在
+    if [ ! -f "$config_file" ]; then
+        print_error "前端配置文件不存在: $config_file"
+        return 1
+    fi
+    
+    # 更新配置文件中的WebSocket代理目标
+    sed -i.bak "s|target: 'ws://.*:5000'|target: 'ws://${ip}:5001'|g" "$config_file"
+    sed -i.bak "s|target: 'http://.*:5000'|target: 'http://${ip}:5001'|g" "$config_file"
+    
+    print_success "前端代理配置已更新"
+}
+
 # 启动后端服务
 start_backend() {
     print_info "正在启动后端服务..."
@@ -51,14 +89,20 @@ start_backend() {
     # 进入后端目录
     cd "$BACKEND_DIR"
     
+    # 设置环境变量，确保WebSocket服务器绑定到所有接口
+    export FLASK_RUN_HOST="0.0.0.0"
+    export FLASK_RUN_PORT="5001"
+    export FLASK_DEBUG="1"
+    
     # 启动后端服务
+    print_info "启动Flask应用，监听所有接口，端口5001"
     python app.py &
     BACKEND_PID=$!
     
-    print_success "后端服务已启动，PID: $BACKEND_PID"
-    
     # 返回项目根目录
     cd "$PROJECT_ROOT"
+    
+    print_success "后端服务已启动，PID: $BACKEND_PID"
 }
 
 # 启动前端服务
@@ -113,7 +157,13 @@ main() {
     # 启动前端服务
     start_frontend
     
-    print_info "开发环境已启动，按 Ctrl+C 停止所有服务"
+    # 显示访问信息
+    local ip=$(get_local_ip)
+    print_success "开发环境已启动"
+    print_info "前端访问地址: http://${ip}:8080"
+    print_info "后端API地址: http://${ip}:5001/api"
+    print_info "WebSocket地址: ws://${ip}:5001/ws"
+    print_info "按Ctrl+C停止所有服务"
     
     # 等待用户中断
     wait

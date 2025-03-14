@@ -59,7 +59,7 @@ build_frontend() {
         cat > ".env.production" << EOF
 # 生产环境配置
 VUE_APP_API_URL=/api
-VUE_APP_WS_URL=ws://\${window.location.host}/ws
+VUE_APP_WS_URL=ws://\${window.location.hostname}:5005
 EOF
         print_success "前端生产环境配置文件创建成功"
     fi
@@ -107,6 +107,20 @@ copy_to_backend() {
     print_success "前端构建结果已复制到后端静态目录"
 }
 
+# 创建前端环境变量文件
+create_frontend_env() {
+    print_info "创建前端环境变量文件..."
+    
+    # 创建.env.production文件
+    cat > "${FRONTEND_DIR}/.env.production" << EOF
+# 生产环境配置
+VUE_APP_API_URL=/api
+VUE_APP_WS_URL=ws://\${window.location.hostname}:5005
+EOF
+    
+    print_success "前端环境变量文件创建成功"
+}
+
 # 主函数
 main() {
     print_info "开始构建RVC控制端生产环境版本..."
@@ -116,6 +130,9 @@ main() {
     
     # 复制前端构建结果到后端静态目录
     copy_to_backend
+    
+    # 创建前端环境变量文件
+    create_frontend_env
     
     print_success "RVC控制端生产环境版本构建完成"
     echo ""

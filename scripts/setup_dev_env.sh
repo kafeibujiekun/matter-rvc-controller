@@ -131,7 +131,7 @@ EOF
         cat > "${FRONTEND_DIR}/.env.local" << EOF
 # 开发环境配置
 VUE_APP_API_URL=http://localhost:5000/api
-VUE_APP_WS_URL=ws://localhost:5000/ws
+VUE_APP_WS_URL=ws://localhost:5005
 EOF
         print_success "前端环境配置文件创建成功"
     else
