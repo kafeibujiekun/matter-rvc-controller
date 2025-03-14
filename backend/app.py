@@ -19,7 +19,27 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
+
+# 设置Matter客户端日志级别为DEBUG，以显示详细的通信日志
+matter_logger = logging.getLogger('matter_client')
+matter_logger.setLevel(logging.DEBUG)
+
+# 添加文件处理器，将通信日志保存到文件
+if not os.path.exists('logs'):
+    os.makedirs('logs')
+file_handler = logging.FileHandler('logs/matter_communication.log')
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+matter_logger.addHandler(file_handler)
+
+# 添加控制台处理器，在控制台显示通信日志
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+console_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+matter_logger.addHandler(console_handler)
+
 logger = logging.getLogger(__name__)
+logger.info("日志系统已配置，Matter通信日志将保存到 logs/matter_communication.log 并显示在控制台")
 
 # 创建Flask应用
 app = Flask(__name__, 
@@ -35,8 +55,11 @@ app.config.from_object(config)
 # 设备基本信息
 app.config['DEVICE_INFO'] = {
     "product_name": "RVC控制器",
+    "manufacturer": "未知厂商",
     "hardware_version": "1.0.0",
     "software_version": "1.0.0",
+    "serial_number": "未知",
+    "matter_version": "未知",
     "ip_address": "自动获取"
 }
 

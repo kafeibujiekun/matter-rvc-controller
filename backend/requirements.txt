@@ -7,3 +7,5 @@ websockets==15.0.1
 hypercorn==0.14.3
 asyncio==3.4.3
 python-dotenv==1.0.0 
+home-assistant-chip-clusters==2024.11.4
+home-assistant-chip-core==2024.11.4

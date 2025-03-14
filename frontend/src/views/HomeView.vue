@@ -1,6 +1,6 @@
 <template>
   <div class="home">
-    <BasicInfo :connected="connected" @refresh="refreshData" />
+    <BasicInfo :connected="connected" @refresh="refreshData" @node-loaded="handleNodeLoaded" />
     <DeviceControl :connected="connected" :status="deviceStatus" />
   </div>
 </template>
@@ -30,6 +30,14 @@ export default {
     const handleStatusUpdate = (status) => {
       deviceStatus.value = status;
       connected.value = true;
+    };
+    
+    // 处理节点加载事件
+    const handleNodeLoaded = (status) => {
+      if (status) {
+        deviceStatus.value = status;
+        connected.value = true;
+      }
     };
     
     // 刷新数据
@@ -65,7 +73,8 @@ export default {
     return {
       connected,
       deviceStatus,
-      refreshData
+      refreshData,
+      handleNodeLoaded
     };
   }
 }

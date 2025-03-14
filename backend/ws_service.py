@@ -7,10 +7,7 @@ import os
 import json
 import asyncio
 import logging
-import socket
 import websockets
-import subprocess
-import sys
 
 # 配置日志
 logger = logging.getLogger(__name__)
@@ -25,9 +22,9 @@ class WebSocketService:
         
         # 设备状态（模拟数据）
         self.device_status = {
-            "cleaning_mode": "标准",
-            "operation_status": "待机",
-            "battery_level": 80
+            "cleaning_mode": "未知",
+            "operation_status": "未知",
+            "battery_level": 0
         }
         
         # 状态更新任务
@@ -140,69 +137,6 @@ class WebSocketService:
             # 等待一段时间
             await asyncio.sleep(10)
     
-    def check_port_in_use(self, port):
-        """检查端口是否被占用
-        
-        Args:
-            port: 要检查的端口号
-            
-        Returns:
-            tuple: (是否被占用, 占用进程信息)
-        """
-        # 使用socket检查端口是否被占用
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        result = sock.connect_ex(('127.0.0.1', port))
-        sock.close()
-        
-        if result == 0:  # 端口被占用
-            # 尝试获取占用端口的进程信息
-            process_info = "未知进程"
-            try:
-                if sys.platform.startswith('linux'):
-                    cmd = f"lsof -i :{port} | grep LISTEN"
-                    process = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-                    if process.stdout:
-                        process_info = process.stdout.strip()
-                elif sys.platform == 'win32':
-                    cmd = f"netstat -ano | findstr :{port}"
-                    process = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-                    if process.stdout:
-                        process_info = process.stdout.strip()
-            except Exception as e:
-                logger.error(f"获取进程信息失败: {str(e)}")
-            
-            return True, process_info
-        
-        return False, None
-    
-    def print_port_usage_error(self, port, process_info):
-        """打印端口占用错误信息
-        
-        Args:
-            port: 被占用的端口
-            process_info: 占用进程信息
-        """
-        error_message = f"""
-========================================================================
-错误: 端口 {port} 已被占用，无法启动WebSocket服务！
-
-占用信息: {process_info}
-
-请尝试以下解决方案:
-1. 终止占用端口的进程:
-   - Linux: sudo kill <进程ID>
-   - Windows: taskkill /F /PID <进程ID>
-
-2. 修改WebSocket服务端口:
-   - 设置环境变量: export WS_PORT=<其他端口>
-   - 或修改 .env 文件中的 WS_PORT 值
-
-3. 重启系统，释放所有端口占用
-========================================================================
-"""
-        logger.error(error_message)
-        print(error_message, file=sys.stderr)
-    
     async def start(self, host='0.0.0.0', port=None):
         """启动WebSocket服务器
         
@@ -214,22 +148,13 @@ class WebSocketService:
         if port is None:
             port = int(os.environ.get('WS_PORT', 5005))
         
-        # 检查端口是否被占用
-        port_in_use, process_info = self.check_port_in_use(port)
-        if port_in_use:
-            self.print_port_usage_error(port, process_info)
-            raise OSError(f"端口 {port} 已被占用，无法启动WebSocket服务")
-        
         # 启动WebSocket服务器
-        try:
-            self.server = await websockets.serve(self.handle_client, host, port)
-            logger.info(f"WebSocket服务器已启动，监听 {host}:{port}")
-            
-            # 启动定期更新任务
-            self.update_task = asyncio.create_task(self.update_status_periodically())
-        except Exception as e:
-            logger.error(f"启动WebSocket服务器失败: {str(e)}")
-            raise
+        self.server = await websockets.serve(self.handle_client, host, port)
+        
+        logger.info(f"WebSocket服务器已启动，监听 {host}:{port}")
+        
+        # 启动定期更新任务
+        self.update_task = asyncio.create_task(self.update_status_periodically())
     
     async def stop(self):
         """停止WebSocket服务器"""

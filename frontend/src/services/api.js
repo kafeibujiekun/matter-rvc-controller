@@ -42,6 +42,16 @@ export default {
     return api.get('/status');
   },
   
+  // 获取所有节点信息
+  getAllNodes() {
+    return api.get('/nodes');
+  },
+  
+  // 获取指定节点的设备状态
+  getNodeStatus(nodeId) {
+    return api.get(`/node/${nodeId}`);
+  },
+  
   // 控制设备
   controlDevice(action, params = {}) {
     return api.post('/control', {
