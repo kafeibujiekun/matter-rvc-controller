@@ -25,9 +25,9 @@ class MatterClient:
         self.websocket = None
         self.connected = False
         self.device_status = {
-            "cleaning_mode": "未知",
-            "operation_status": "离线",
-            "battery_level": 0
+            "current_cleaning_mode": "未知",
+            "operational_state": "未知",
+            "battery_level": 0,
         }
         self.status_callbacks = []
         
@@ -137,12 +137,21 @@ class MatterClient:
                 
                 # 如果节点可用，更新设备状态
                 if node.get("available", False):
-                    # 这里可以根据节点属性更新设备状态
-                    # 暂时使用简单的状态更新
+                    # 尝试从节点属性中获取操作状态
+                    operational_state = "未知"
+                    attributes = node.get("attributes", {})
+                    if "1/97/4" in attributes:
+                        try:
+                            operational_state = attributes["1/97/4"]
+                            logger.info("从节点 %s 获取到操作状态: %s", node_id, operational_state)
+                        except Exception as e:
+                            logger.error("获取操作状态时出错: %s", str(e))
+                    
+                    # 更新设备状态
                     self.device_status = {
-                        "cleaning_mode": "标准",
-                        "operation_status": "待机",
-                        "battery_level": 80
+                        "current_cleaning_mode": "未知",
+                        "operational_state": operational_state,
+                        "battery_level": 0,
                     }
                     logger.info("节点 %s 可用，更新设备状态: %s", node_id, json.dumps(self.device_status, ensure_ascii=False))
         

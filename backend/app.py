@@ -7,17 +7,22 @@ import os
 import logging
 import asyncio
 import signal
-from flask import Flask, render_template, send_from_directory
+from flask import Flask, render_template, send_from_directory, jsonify
 from flask_cors import CORS
 import config
 from matter_client import MatterClient
 from api.routes import api
 from ws_service import ws_service
+from config import MATTER_SERVER_WS_URL
 
 # 配置日志
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('app.log')
+    ]
 )
 
 # 设置Matter客户端日志级别为DEBUG，以显示详细的通信日志
@@ -54,13 +59,14 @@ app.config.from_object(config)
 
 # 设备基本信息
 app.config['DEVICE_INFO'] = {
-    "product_name": "RVC控制器",
-    "manufacturer": "未知厂商",
-    "hardware_version": "1.0.0",
-    "software_version": "1.0.0",
+    "product_name": "未知",
+    "manufacturer": "未知",
+    "hardware_version": "未知",
+    "software_version": "未知",
     "serial_number": "未知",
     "matter_version": "未知",
-    "ip_address": "自动获取"
+    "operational_state": "未知",
+    "ip_address": "未知"
 }
 
 # 注册API蓝图

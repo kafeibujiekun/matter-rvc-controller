@@ -6,11 +6,31 @@ API路由
 from flask import Blueprint, jsonify, request, current_app
 import asyncio
 import logging
+import json
 
 # 配置日志
 logger = logging.getLogger(__name__)
 
 api = Blueprint('api', __name__)
+
+@api.before_request
+def log_request_info():
+    """记录所有API请求的信息"""
+    logger.info("接收到API请求: %s %s", request.method, request.path)
+    
+    # 记录请求参数
+    if request.args:
+        logger.info("请求参数: %s", dict(request.args))
+    
+    # 记录请求体（如果是JSON）
+    if request.is_json:
+        try:
+            logger.info("请求体: %s", json.dumps(request.json, ensure_ascii=False))
+        except Exception as e:
+            logger.error("无法解析请求体JSON: %s", str(e))
+    
+    # 记录请求头（可选，通常不需要记录所有头信息）
+    # logger.debug("请求头: %s", dict(request.headers))
 
 @api.route('/status', methods=['GET'])
 def get_status():
@@ -81,9 +101,6 @@ def get_node_status(node_id):
     # 从节点属性中提取信息
     attributes = node_info.get("attributes", {})
     
-    # 记录完整的属性数据，便于调试
-    logger.info("节点 %s 的属性数据: %s", node_id, attributes)
-    
     # 使用正确的属性路径提取信息
     # VendorName: 0/40/1
     # ProductName: 0/40/3
@@ -91,13 +108,21 @@ def get_node_status(node_id):
     # SoftwareVersionString: 0/40/10
     # SerialNumber: 0/40/15
     # SpecificationVersion: 0/40/21
+    # OperationalState: 1/97/4
+    # OperationalStateList: 1/97/3
     manufacturer = extract_attribute(attributes, "0/40/1", "未知厂商")
     product_name = extract_attribute(attributes, "0/40/3", "未知产品")
     hardware_version = extract_attribute(attributes, "0/40/8", "未知")
     software_version = extract_attribute(attributes, "0/40/10", "未知")
     serial_number = extract_attribute(attributes, "0/40/15", "未知")
     matter_version = extract_attribute(attributes, "0/40/21", "未知")
-    
+    operational_state = extract_attribute(attributes, "1/97/4", "未知")
+    operational_state_list = extract_attribute(attributes, "1/97/3", [])
+    current_cleaning_mode = extract_attribute(attributes, "1/85/1", "未知")
+    supported_cleaning_modes = extract_attribute(attributes, "1/85/0", "未知")
+    current_run_mode = extract_attribute(attributes, "1/84/1", "未知")
+    supported_run_modes = extract_attribute(attributes, "1/84/0", "未知")
+
     # 添加设备基本信息
     device_info = {
         "product_name": product_name,
@@ -112,17 +137,33 @@ def get_node_status(node_id):
         "date_commissioned": node_info.get("date_commissioned", ""),
         "last_interview": node_info.get("last_interview", "")
     }
-    
+
+    logger.info("节点 %s 的设备信息: %s", node_id, device_info)
+
     # 获取设备状态
     # 如果节点可用，使用节点特定状态，否则使用默认状态
     if node_info.get("available", False):
-        status = matter_client.get_device_status()
-    else:
+        # 处理操作状态列表，添加状态名称
+        enhanced_operational_state_list = enhance_operational_state_list(operational_state_list)
+        
         status = {
-            "cleaning_mode": "未知",
-            "operation_status": "离线",
+            "current_run_mode": current_run_mode,
+            "supported_run_modes": supported_run_modes,
+            "current_cleaning_mode": current_cleaning_mode,
+            "supported_cleaning_modes": supported_cleaning_modes,
+            "operational_state": operational_state,
+            "operational_state_list": enhanced_operational_state_list,
             "battery_level": 0
         }
+    else:
+        status = {
+            "current_cleaning_mode": "未知",
+            "operational_state": "离线",
+            "operational_state_list": [],
+            "battery_level": 0
+        }
+
+    logger.info("节点 %s 的设备状态: %s", node_id, status)
     
     return jsonify({
         "status": "success",
@@ -153,6 +194,41 @@ def extract_attribute(attributes, path, default_value):
     
     return default_value
 
+def enhance_operational_state_list(state_list):
+    """为操作状态列表中的每个状态ID添加对应的名称
+    
+    Args:
+        state_list: 操作状态ID列表，格式为 [{"0":id}, ...]
+        
+    Returns:
+        增强后的操作状态列表，格式为 [{"id":id, "name":name}, ...]
+    """
+    if not state_list or not isinstance(state_list, list):
+        return []
+    
+    # 操作状态ID与名称的映射
+    state_map = {
+        0: "Stopped",
+        1: "Running",
+        2: "Paused",
+        3: "Error",
+        64: "SeekingCharger",  # 0x40 SeekingCharger
+        65: "Charging",        # 0x41 Charging
+        66: "Docked"           # 0x42 Docked
+    }
+    
+    enhanced_list = []
+    for item in state_list:
+        if "0" in item:
+            state_id = item["0"]
+            state_name = state_map.get(state_id, f"State{state_id}")
+            enhanced_list.append({
+                "id": state_id,
+                "name": state_name
+            })
+    
+    return enhanced_list
+
 @api.route('/control', methods=['POST'])
 async def control_device():
     """控制设备"""
@@ -167,6 +243,7 @@ async def control_device():
     
     action = data['action']
     params = data.get('params', {})
+    node_id = data.get('node_id', '4')  # 默认使用节点4
     
     # 定义支持的操作
     supported_actions = {
@@ -184,7 +261,7 @@ async def control_device():
         }), 400
     
     # 异步发送命令
-    success = await matter_client.send_command(action, params)
+    success = await matter_client.send_command(node_id, action, params)
     
     if success:
         return jsonify({

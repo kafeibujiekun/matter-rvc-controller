@@ -1,12 +1,12 @@
 <template>
   <div class="home">
-    <BasicInfo :connected="connected" @refresh="refreshData" @node-loaded="handleNodeLoaded" />
-    <DeviceControl :connected="connected" :status="deviceStatus" />
+    <BasicInfo :connected="connected" @refresh="refreshData" @node-loaded="handleNodeLoaded" ref="basicInfoRef" />
+    <DeviceControl :connected="connected" :nodeId="selectedNodeId" />
   </div>
 </template>
 
 <script>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import BasicInfo from '@/components/BasicInfo.vue';
 import DeviceControl from '@/components/DeviceControl.vue';
 import api from '@/services/api';
@@ -24,6 +24,12 @@ export default {
       cleaning_mode: '未知',
       operation_status: '离线',
       battery_level: 0
+    });
+    const basicInfoRef = ref(null);
+    
+    // 获取BasicInfo组件中选择的节点ID
+    const selectedNodeId = computed(() => {
+      return basicInfoRef.value ? basicInfoRef.value.nodeId : '';
     });
     
     // 处理设备状态更新
@@ -73,6 +79,8 @@ export default {
     return {
       connected,
       deviceStatus,
+      basicInfoRef,
+      selectedNodeId,
       refreshData,
       handleNodeLoaded
     };

@@ -8,7 +8,7 @@
             <div class="node-input-group">
               <el-select 
                 v-model="nodeId" 
-                placeholder="选择Node ID" 
+                placeholder="请选择Node" 
                 size="small"
                 :loading="nodesLoading"
                 filterable
@@ -22,14 +22,6 @@
                   :value="node.node_id.toString()"
                 />
               </el-select>
-              <el-button 
-                type="primary" 
-                size="small" 
-                @click="loadNodeInfo" 
-                :loading="loading"
-              >
-                加载
-              </el-button>
             </div>
             <el-button type="primary" size="small" @click="refreshInfo" :loading="loading">
               <el-icon><Refresh /></el-icon>
@@ -60,7 +52,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { Refresh } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import api from '../services/api';
@@ -178,6 +170,15 @@ export default {
       fetchNodes();
       emit('refresh');
     };
+    
+    // 监听nodeId变化，自动加载节点信息
+    watch(() => nodeId.value, (newNodeId) => {
+      if (newNodeId) {
+        loadNodeInfo();
+      } else {
+        resetDeviceInfo();
+      }
+    });
     
     onMounted(() => {
       resetDeviceInfo();

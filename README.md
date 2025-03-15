@@ -49,6 +49,19 @@ matter-rvc-controller/
 
 ## 快速开始
 
+### 部署Matter Server
+
+```
+mkdir data
+docker run -d \
+  --name matter-server \
+  --restart=unless-stopped \
+  --security-opt apparmor=unconfined \
+  -v $(pwd)/data:/data \
+  --network=host \
+  ghcr.io/home-assistant-libs/python-matter-server:stable
+```
+
 ### 使用脚本（推荐）
 
 项目提供了一系列脚本，用于简化开发和部署过程：
